@@ -1,6 +1,9 @@
 #ifndef __AM_COROUTINE_H__
 #define __AM_COROUTINE_H__
 
+#include "am_queue.h"
+#include "am_tree.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -42,7 +42,7 @@ __asm__(
 
 "movq 16(%rdi),%rax\n"
 "movq %rax,(%rsp)\n"
-"ret\n";
+"ret\n"
 );
 
 
@@ -79,7 +79,7 @@ static void am_coroutine_init(am_coroutine* co){
 	co->ctx.rbp = (void*)(stack-(3*sizeof(void*)));
 	//下一条指令在内存中的地址
 	co->ctx.rip = (void*)_exec;
-	co->status = BIT(AM_COROUTINE_STATUS_READY);
+	co->status = (am_coroutine_status)BIT(AM_COROUTINE_STATUS_READY);
 }
 
 void am_coroutine_yield(am_coroutine* co){

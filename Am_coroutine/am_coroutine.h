@@ -48,6 +48,14 @@ typedef enum{
 	AM_COROUTINE_STATUS_EXITED
 }am_coroutine_status;
 
+
+//协程在执行I/O操作时的状态管理
+typedef enum {
+	AM_COROUTINE_EV_READ,
+	AM_COROUTINE_EV_WRITE
+} am_coroutine_event;
+
+
 LIST_HEAD(_am_coroutine_link, _am_coroutine);
 TAILQ_HEAD(_am_coroutine_queue, _am_coroutine);
 
@@ -76,7 +84,7 @@ typedef struct _am_cpu_ctx{
 	void* rsi;
 	//数据寄存器
 	void* rbx;
-	void* r12；
+	void* r12;
 	void* r13;
 	void* r14;
 	void* r15;

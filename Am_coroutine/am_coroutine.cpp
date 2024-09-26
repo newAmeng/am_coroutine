@@ -49,7 +49,7 @@ __asm__(
 static void _exec(void* lt){
 	am_coroutine* co = (am_coroutine*)lt;
 	co->func(co->arg);
-	co->status |= ((am_coroutine_status)BIT(AM_COROUTINE_STATUS_EXITED));
+	co->status |= (BIT(AM_COROUTINE_STATUS_EXITED));
 	am_coroutine_yield(co);
 }
 
@@ -79,7 +79,7 @@ static void am_coroutine_init(am_coroutine* co){
 	co->ctx.rbp = (void*)(stack-(3*sizeof(void*)));
 	//下一条指令在内存中的地址
 	co->ctx.rip = (void*)_exec;
-	co->status = (am_coroutine_status)BIT(AM_COROUTINE_STATUS_READY);
+	co->status = BIT(AM_COROUTINE_STATUS_READY);
 }
 
 void am_coroutine_yield(am_coroutine* co){
@@ -166,7 +166,7 @@ int am_coroutine_create(am_coroutine** new_co,proc_coroutine func,void* arg){
 
 		co->sched = sched;
 		co->stack_size = sched->stack_size;
-		co->status = (am_coroutine_status)BIT(AM_COROUTINE_STATUS_NEW);
+		co->status = BIT(AM_COROUTINE_STATUS_NEW);
 		co->id = sched->spawned_coroutines++;
 		co->func = func;
 		co->fd = -1;

@@ -149,7 +149,8 @@ typedef struct _am_coroutine{
 	//上一个协程的栈的大小
 	size_t last_stack_size;
 	//协程的状态
-	am_coroutine_status status;
+	//am_coroutine_status status;
+	uint32_t status;
 	//调度器
 	am_schedule* sched;
 	//协程的创建时间

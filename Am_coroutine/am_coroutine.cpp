@@ -22,7 +22,7 @@ __asm__(
 "_switch:\n"
 "__switch:\n"
 "movq %rsp,0(%rsi)\n"
-"movq %rbp,8(rsi)\n"
+"movq %rbp,8(%rsi)\n"
 "movq (%rsp),%rax\n"
 "movq %rax,16(%rsi)\n"
 "movq %rbx,24(%rsi)\n"

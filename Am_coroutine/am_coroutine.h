@@ -84,11 +84,10 @@ typedef struct _am_cpu_ctx{
 	void* rsi;
 	//数据寄存器
 	void* rbx;
-	void* r1;
-	void* r2;
-	void* r3;
-	void* r4;
-	void* r5;
+	void* r12;
+	void* r13;
+	void* r14;
+	void* r15;
 }am_cpu_ctx;
 
 

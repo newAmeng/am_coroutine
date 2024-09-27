@@ -178,3 +178,7 @@ int am_coroutine_create(am_coroutine** new_co,proc_coroutine func,void* arg){
 		return 0;
 	}
 }
+
+
+
+

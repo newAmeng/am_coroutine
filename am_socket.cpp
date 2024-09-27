@@ -2,7 +2,7 @@
 
 static int am_poll_inner(struct epoll_event* evlist, int maxevents, int timeout) {
 	//获取当前协程调度器sched和当前正在运行的协程co
-	nty_schedule *sched = nty_coroutine_get_sched();
+	nty_schedule *sched = am_coroutine_get_sched();
 
 	if (timeout == 0){
 		return epoll_wait(sched->epoll_fd,evlist, maxevents, timeout);
@@ -12,7 +12,7 @@ static int am_poll_inner(struct epoll_event* evlist, int maxevents, int timeout)
 		timeout = INT_MAX;
 	}
 	
-	nty_coroutine *co = sched->curr_thread;
+	am_coroutine *co = sched->curr_thread;
 	//遍历所有要监视的文件描述符
 	int i = 0;
 	for (i = 0;i < maxevents;i ++) {

@@ -1,6 +1,6 @@
 #include "am_coroutine.h"
 #include <sys/epoll.h>
-
+#include <sys/eventfd.h>
 
 
 static inline int am_coroutine_sleep_cmp(am_coroutine* co1,am_coroutine* co2){
@@ -65,7 +65,7 @@ am_coroutine* am_schedule_search_wait(int fd){
 }
 
 //从等待树中移除一个协程，将其状态改为就绪
-void am_schedule_desched_wait(int fd){
+am_coroutine* am_schedule_desched_wait(int fd){
 	//
 }
 
@@ -99,7 +99,7 @@ void am_schedule_cancel_wait(am_coroutine* co){
 //释放调度器资源
 void am_schedule_free(am_schedule* sched){
 	if(sched->epoll_fd > 0){
-		close(epoll_fd);
+		close(sched->epoll_fd);
 	}
 	if(sched->eventfd > 0){
 		close(sched->eventfd);
@@ -168,7 +168,7 @@ static am_coroutine* am_schedule_expired(am_schedule* sched){
 }
 
 
-static inline int am_schedule_isdone(am_coroutine* sched){
+static inline int am_schedule_isdone(am_schedule* sched){
 	return (RB_EMPTY(&sched->waiting) &&
 		LIST_EMPTY(&sched->busy) &&
 		RB_EMPTY(&sched->sleeping)&&

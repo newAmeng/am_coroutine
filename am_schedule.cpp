@@ -38,7 +38,7 @@ void am_schedule_sched_sleepdown(am_coroutine* co,uint64_t msecs){
 			continue;
 		}
 		//如果返回NULL，表示插入成功
-		co->status |= BIT(AM_COROUTIE_STATUS_SLEEPING);
+		co->status |= BIT(AM_COROUTINE_STATUS_SLEEPING);
 		break;
 	}
 }
@@ -46,10 +46,10 @@ void am_schedule_sched_sleepdown(am_coroutine* co,uint64_t msecs){
 
 //从睡眠树中移除一个协程，将其状态改为就绪
 void am_schedule_desched_sleepdown(am_coroutine* co){
-	if(co->status & BIT(AM_COROUTIE_STATUS_SLEEPING)){
+	if(co->status & BIT(AM_COROUTINE_STATUS_SLEEPING)){
 		RB_REMOVE(_am_coroutine_rbtree_sleep,&co->sched->sleeping,co);
-		co->status &= CLEARBIT(AM_COROUTIE_STATUS_SLEEPING);
-		co->status |= BIT(AM_COROUTIE_STATUS_READY);
+		co->status &= CLEARBIT(AM_COROUTINE_STATUS_SLEEPING);
+		co->status |= BIT(AM_COROUTINE_STATUS_READY);
 	}
 }
 
@@ -73,9 +73,9 @@ void am_schedule_desched_wait(int fd){
 //将协程设为等待状态，等待特定的文件描述符和事件发生
 void am_schedule_sched_wait(am_coroutine* co,int fd,unsigned short events,uint64_t timeout){
 	if(events & EPOLLIN){
-		co->status |= AM_COROUTIE_STATUS_WAIT_READ;
+		co->status |= AM_COROUTINE_STATUS_WAIT_READ;
 	}else if(events & EPOLLOUT){
-		co->status |= AM_COROUTIE_STATUS_WAIT_WRITE;
+		co->status |= AM_COROUTINE_STATUS_WAIT_WRITE;
 	}else{
 		printf("unknown events\n");
 		assert(0);

@@ -45,7 +45,9 @@ typedef enum{
 	//运行
 	AM_COROUTINE_STATUS_BUSY,
 	//退出
-	AM_COROUTINE_STATUS_EXITED
+	AM_COROUTINE_STATUS_EXITED,
+	//睡眠
+	AM_COROUTINE_STATUS_SLEEPING
 }am_coroutine_status;
 
 

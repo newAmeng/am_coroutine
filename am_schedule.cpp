@@ -112,6 +112,9 @@ void am_schedule_free(am_schedule* sched){
 
 //创建调度器
 int am_schedule_create(int stack_size){
+	if(stack_size==0){
+		stack_size = AM_CO_MAX_STACKSIZE;
+	}
 	am_schedule* sched = (am_schedule*)calloc(1,sizeof(am_schedule));
 	if(sched == NULL){
 		printf("calloc err\n");

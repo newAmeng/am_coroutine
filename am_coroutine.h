@@ -34,18 +34,19 @@ typedef void (*proc_coroutine)(void*);
 //模仿进程的五状态模型
 //新建、就绪、阻塞等待(等待读、等待写)、运行、终止
 typedef enum{
-	//新建
-	AM_COROUTINE_STATUS_NEW,
-	//就绪
-	AM_COROUTINE_STATUS_READY,
 	//等待读
 	AM_COROUTINE_STATUS_WAIT_READ,
 	//等待写
 	AM_COROUTINE_STATUS_WAIT_WRITE,
-	//运行
-	AM_COROUTINE_STATUS_BUSY,
+	//新建
+	AM_COROUTINE_STATUS_NEW,
+	//就绪
+	AM_COROUTINE_STATUS_READY,
 	//退出
 	AM_COROUTINE_STATUS_EXITED,
+	//运行
+	AM_COROUTINE_STATUS_BUSY,
+	
 	//睡眠
 	AM_COROUTINE_STATUS_SLEEPING
 }am_coroutine_status;

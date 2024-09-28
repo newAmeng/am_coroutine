@@ -4,12 +4,20 @@
 
 
 static inline int am_coroutine_sleep_cmp(am_coroutine* co1,am_coroutine* co2){
-	//
+	if (co1->sleep_usecs < co2->sleep_usecs) {
+		return -1;//返回-1，表示co1应该排在co2之前
+	}
+	if (co1->sleep_usecs == co2->sleep_usecs) {
+		return 0;
+	}
+	return 1;
 }
 
 
 static inline int am_coroutine_wait_cmp(am_coroutine* co1,am_coroutine* co2){
-	//
+	if (co1->fd < co2->fd) return -1;
+	else if (co1->fd == co2->fd) return 0;
+	else return 1;
 }
 
 
@@ -60,13 +68,26 @@ am_coroutine* am_schedule_search_wait(int fd){
 	am_schedule* sched = am_coroutine_get_sched();
 	am_coroutine* co = RB_FIND(_am_coroutine_rbtree_wait,&sched->waiting,&find_it);
 	//清除状态位
-	co->status = 0;
+	co->status = (am_coroutine_status)0;
 	return co;
 }
 
 //从等待树中移除一个协程，将其状态改为就绪
 am_coroutine* am_schedule_desched_wait(int fd){
-	//
+	am_coroutine find_it = {0};
+	find_it.fd = fd;
+
+	am_schedule *sched = am_coroutine_get_sched();
+	
+	am_coroutine *co = RB_FIND(_am_coroutine_rbtree_wait, &sched->waiting, &find_it);
+	if (co != NULL) {
+		RB_REMOVE(_am_coroutine_rbtree_wait, &co->sched->waiting, co);
+	}
+	co->status = 0;
+	//将协程从调度器的睡眠红黑树中移除，并将其状态从睡眠状态转换为就绪状态
+	am_schedule_desched_sleepdown(co);
+	
+	return co;
 }
 
 

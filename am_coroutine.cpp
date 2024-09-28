@@ -150,33 +150,34 @@ int am_coroutine_create(am_coroutine** new_co,proc_coroutine func,void* arg){
 			printf("fail to create scheduler\n");
 			return -1;
 		}
-
-		am_coroutine* co = (am_coroutine*)calloc(1,sizeof(am_coroutine));
-		if(co == NULL){
-			printf("calloc err\n");
-			return -1;
-		}
-
-		int ret = posix_memalign(&co->stack,getpagesize(),sched->stack_size);
-		if(ret!=0){
-			printf("posix_memalign err\n");
-			free(co);
-			return -1;
-		}
-
-		co->sched = sched;
-		co->stack_size = sched->stack_size;
-		co->status = BIT(AM_COROUTINE_STATUS_NEW);
-		co->id = sched->spawned_coroutines++;
-		co->func = func;
-		co->fd = -1;
-		co->events = 0;
-		co->arg = arg;
-		co->birth = am_coroutine_usec_now();
-		*new_co = co;
-		TAILQ_INSERT_TAIL(&co->sched->ready,co,ready_next);
-		return 0;
 	}
+
+	am_coroutine* co = (am_coroutine*)calloc(1,sizeof(am_coroutine));
+	if(co == NULL){
+		printf("calloc err\n");
+		return -1;
+	}
+
+	int ret = posix_memalign(&co->stack,getpagesize(),sched->stack_size);
+	if(ret!=0){
+		printf("posix_memalign err\n");
+		free(co);
+		return -1;
+	}
+
+	co->sched = sched;
+	co->stack_size = sched->stack_size;
+	co->status = BIT(AM_COROUTINE_STATUS_NEW);
+	co->id = sched->spawned_coroutines++;
+	co->func = func;
+	co->fd = -1;
+	co->events = 0;
+	co->arg = arg;
+	co->birth = am_coroutine_usec_now();
+	*new_co = co;
+	TAILQ_INSERT_TAIL(&co->sched->ready,co,ready_next);
+	return 0;
+
 }
 
 

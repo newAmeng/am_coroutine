@@ -112,10 +112,6 @@ void am_schedule_sched_wait(am_coroutine* co,int fd,unsigned short events,uint64
 	am_schedule_sched_sleepdown(co,timeout);
 }
 
-//
-void am_schedule_cancel_wait(am_coroutine* co){
-	//
-}
 
 //释放调度器资源
 void am_schedule_free(am_schedule* sched){
@@ -161,7 +157,6 @@ int am_schedule_create(int stack_size){
 	assert(-1 != ret);
 
 	sched->stack_size = stack_size;
-	sched->page_size = getpagesize();
 	sched->spawned_coroutines = 0;
 	sched->default_timeout = 3000000u;
 

@@ -1,4 +1,4 @@
-# am_coroutine, 一个好用的协程框架
+# am_coroutine, 一个简单易用的协程框架
 
 ## 1.为什么要有协程
 
@@ -67,23 +67,133 @@ resume：当epoll_wait检测到写IO就绪的时候，就恢复某一个协程�
 
 先将寄存器的值保存到current中，然后再将co2中保存的值加载到CPU中。
 
+## 4.协程的执行方式
 
+![1](./img/5.png)
 
+假设当前有四个协程co1、co2、co3 和 co4 以及一个调度器 scheduler。
 
+当协程co2的IO没有就绪时，co2让出CPU，让调度器运行，然后由调度器来决定下一个执行的协程。
 
+## 5.如何使用该协程
 
+在网络编程的时候，我们假设每次 accept 返回的时候，就为新到来的客户端分配一个线程，这样一个客户端就对应一个线程。就不会出现多个线程共用一个 cfd 的情况。但是这样大量的创建线程以及后续的调度，都会消耗巨大的资源。
 
+一个客户端请求对应一个线程的代码如下：
 
+```c++
+while(1){
+    socklen_t client_size = sizeof(struct sockaddr_in);
+    int cfd = accept(lfd,(struct sockaddr*)&client_addr,&client_size);
+    
+    pthread_t thread_id;
+    pthread_create(&thread_id,NULL,client_cb,&cfd);
+}
+```
 
+如果我们使用协程，就可以这样实现：
 
+```c++
+while(1){
+    socklen_t client_size = sizeof(struct sockaddr_in);
+    int cfd = am_accept(lfd,(struct sockaddr*)&client_addr,&client_size);
+    
+    am_coroutine* read_co;
+    am_coroutine_create(&read_co,server_reader,&cfd);
+}
+```
 
+am_coroutine 封装了许多接口，一类是协程本身的，一类是POSIX的异步API。
 
+1. 协程创建
 
+   ```c++
+   int am_coroutine_create(am_coroutine** new_co,proc_coroutine func,void* arg);
+   ```
 
+2. 运行调度器
 
+   ```c++
+   void am_schedule_run(void);
+   ```
 
+3. POSIX API 的异步封装
 
+   ```c++
+   int am_socket(int domain,int type,int protocol);
+   int am_accept(int fd,struct sockaddr* addr,socklen_t* len);
+   int am_recv(int fd,void* buf,int length);
+   int am_send(int fd,const void* buf,int length);
+   int am_close(int fd);
+   ```
 
+## 6.协程的工作流程
+
+协程的内部是如何工作的呢？
+
+### 6.1协程的创建
+
+每当我们需要异步调用的时候，我们就创建一个协程。比如当 accept 返回一个新的 cfd 时，创建一个客户端处理的子过程。再比如需要监听多个端口的时候，创建一个 server 的子过程，这样多个端口是同时工作的。
+
+```c++
+int am_coroutine_create(am_coroutine** new_co,proc_coroutine func,void* arg);
+```
+
+new_co：传出参数，需要传入一个空的协程指针的地址，然后在函数内部会在堆上创建出一个协程，最后通过new_co传出该协程对象在堆上的地址。
+
+func：协程的入口函数，当协程被调度的时候，就执行该函数。
+
+arg：入口函数的参数。
+
+### 6.2实现IO异步操作
+
+```c++
+while(1){
+    int nready = epoll_wait(epfd,events,EVENT_SIZE,-1);
+    for(int i=0;i<nready;++i){
+        int sockfd = events[i].data.fd;
+        if(sockfd == lfd){
+            int cfd = accept(lfd,(struct sockaddr*)&client_addr,&client_size);
+            setnonblock(cfd);
+            ev.events = EPOLLIN | EPOLLET;
+            ev.data.fd = cfd;
+            epoll_ctl(epfd,EPOLL_CTL_ADD,cfd,&ev);
+        }else{
+            epoll_ctl(epfd,EPOLL_CTL_DEL,sockfd,NULL);
+            recv(sockfd,buffer,length,0);
+            send(sockfd,buffer,length,0);
+            epoll_ctl(epfd,EPOLL_CTL_ADD,sockfd,NULL);
+        }
+    }
+}
+```
+
+注意在IO操作(recv,send)之前，我们先执行了 epoll_ctl 的删除操作，将对应的 sockfd 从 epfd 中删除。然后在执行完 IO 操作之后，再执行 epoll_ctl 的添加操作，将 sockfd 重新添加到 epfd 中。
+
+这段代码看似没什么作用，但是在多个上下文中，这样做可以保证 sockfd 只会存在于一个上下文中，不会出现在多个上下文中同时对一个 IO 进行操作。协程的 IO 异步操作正是采用该模式进行的。
+
+协程的上下文 IO 异步操作(am_recv,am_send)函数的执行步骤如下：
+
+1. 将 sockfd 添加到 epoll 树中。
+2. 进行上下文的切换，从协程的上下文 yield 到调度器的上下文。
+3. 调度器获取下一个协程的上下文，resume到新的协程。
+
+### 6.3协程的子过程执行
+
+在 create 协程之后，何时回调子过程？由于 CPU 中寄存器 rip 存放下一条要执行指令的地址。所以我们可以把回调函数的地址存储到 rip 中，将回调函数的参数存储到对应的参数寄存器 rdi,rsi,rdx,rcx,r8,r9 中。实现子过程调用的逻辑代码如下：
+
+```c++
+void _exec(am_coroutine* co){
+    co->func(co->arg);//子过程的回调函数
+}
+
+void am_coroutine_init(am_coroutine* co){
+    //ctx : 协程的上下文
+    co->ctx.rdi = (void*)co;//第一个参数
+    co->ctx.rip = (void*)_exec;//回调函数的入口
+    //当实现上下文切换的时候，就会执行入口函数_exec, _exec会调用子过程func
+}
+```
 
 
 

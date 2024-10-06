@@ -83,14 +83,10 @@ static void am_coroutine_init(am_coroutine* co){
 }
 
 void am_coroutine_yield(am_coroutine* co){
-	co->ops = 0;
 	_switch(&co->sched->ctx,&co->ctx);
 }
 
 
-static inline void am_coroutine_madvise(am_coroutine* co){
-	//
-}
 
 //恢复一个协程的运行
 int am_coroutine_resume(am_coroutine* co){
@@ -103,7 +99,6 @@ int am_coroutine_resume(am_coroutine* co){
 	//从当前协程的上下文切换到调度器的上下文
 	_switch(&co->ctx,&co->sched->ctx);
 	sched->curr_thread = NULL;
-	//am_coroutine_madvise(co);
 	if(co->status & BIT(AM_COROUTINE_STATUS_EXITED)){
 		printf("协程已经结束\n");
 		am_coroutine_free(co);
@@ -113,17 +108,6 @@ int am_coroutine_resume(am_coroutine* co){
 }
 
 
-void am_coroutine_renice(am_coroutine* co){
-	//
-}
-
-void am_coroutine_sleep(uint64_t msecs){
-	//
-}
-
-void am_coroutine_detach(void){
-	//
-}
 
 
 static void am_coroutine_sched_key_destructor(void* data){

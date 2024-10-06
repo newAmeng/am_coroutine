@@ -49,7 +49,7 @@ __asm__(
 static void _exec(void* lt){
 	am_coroutine* co = (am_coroutine*)lt;
 	co->func(co->arg);
-	co->status |= (BIT(AM_COROUTINE_STATUS_EXITED));
+	co->status |= BIT(AM_COROUTINE_STATUS_EXITED);
 	am_coroutine_yield(co);
 }
 

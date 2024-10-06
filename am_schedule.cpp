@@ -238,7 +238,6 @@ static int am_schedule_epoll(am_schedule* sched){
 		break;
 	}
 
-	sched->nevents = 0;
 	sched->num_new_events = nready;
 	return 0;
 }

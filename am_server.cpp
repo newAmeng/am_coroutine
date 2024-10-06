@@ -8,7 +8,7 @@
 void am_schedule_run(void);
 
 
-#define MAX_CLIENT_NUM			1000000
+#define MAX_CLIENT_NUM			1048576
 #define TIME_SUB_MS(tv1, tv2)  ((tv1.tv_sec - tv2.tv_sec) * 1000 + (tv1.tv_usec - tv2.tv_usec) / 1000)
 
 
@@ -23,8 +23,8 @@ void server_reader(void *arg) {
 
 	while (1) {
 		
-		char buf[1024] = {0};
-		ret = am_recv(fd, buf, 1024, 0);
+		char buf[128] = {0};
+		ret = am_recv(fd, buf, 128, 0);
 		if (ret > 0) {
 			if(fd > MAX_CLIENT_NUM) 
 			printf("read from server: %.*s\n", ret, buf);
@@ -90,13 +90,12 @@ void server(void *arg) {
 
 int main(int argc, char *argv[]) {
 	am_coroutine *co = NULL;
-
-	int i = 0;
+	
+	unsigned short port[100];
 	unsigned short base_port = 8888;
-	for (i = 0;i < 100;i ++) {
-		unsigned short *port = (unsigned short*)calloc(1, sizeof(unsigned short));
-		*port = base_port + i;
-		am_coroutine_create(&co, server, port); ////////no run
+	for (int i = 0;i < 100; ++i) {
+		port[i] = base_port + i;
+		am_coroutine_create(&co, server, port[i]); ////////no run
 	}
 
 	am_schedule_run(); //run

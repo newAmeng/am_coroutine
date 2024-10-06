@@ -18,7 +18,7 @@ static int am_poll_inner(struct epoll_event* evlist, int maxevents, int timeout)
 	for (i = 0;i < maxevents;i ++) {
 	
 		struct epoll_event ev;
-		//将poll事件转换为epoll事件
+		
 		ev.events = evlist[i].events;
 		ev.data.fd = evlist[i].data.fd;
 		epoll_ctl(sched->epoll_fd, EPOLL_CTL_ADD, evlist[i].data.fd, &ev);

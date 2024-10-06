@@ -44,8 +44,6 @@ typedef enum{
 	AM_COROUTINE_STATUS_READY,
 	//退出
 	AM_COROUTINE_STATUS_EXITED,
-	//运行
-	AM_COROUTINE_STATUS_BUSY,
 	
 	//睡眠
 	AM_COROUTINE_STATUS_SLEEPING
@@ -109,8 +107,7 @@ typedef struct _am_schedule{
 	int epoll_fd;
 	int eventfd;
 	struct epoll_event eventlist[AM_CO_MAX_EVENTS];
-	//当前事件列表中的事件数量
-	int nevents;
+
 	//新的就绪事件数量
 	int num_new_events;
 
@@ -135,10 +132,8 @@ typedef struct _am_coroutine{
 	proc_coroutine func;
 	//上述函数参数
 	void* arg;
-	//协程的私有数据
-	void* data;
-	//协程的栈的大小
-	size_t stack_size;
+
+	
 
 	//协程的状态
 	//am_coroutine_status status;
@@ -157,7 +152,9 @@ typedef struct _am_coroutine{
 
 	//协程的栈指针，指向协程的栈空间
 	void* stack;
-
+	//协程的栈的大小
+	size_t stack_size;
+	
 	//协程下一次需要唤醒的时间，以微秒为单位
 	uint64_t sleep_usecs;
 

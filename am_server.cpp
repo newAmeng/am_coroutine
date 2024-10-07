@@ -46,7 +46,7 @@ void server_reader(void *arg) {
 void server(void *arg) {
 
 	unsigned short port = *(unsigned short *)arg;
-	free(arg);
+	//free(arg);
 
 	int fd = am_socket(AF_INET, SOCK_STREAM, 0);
 	if (fd < 0) return ;
@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
 	unsigned short base_port = 8888;
 	for (int i = 0;i < 100; ++i) {
 		port[i] = base_port + i;
-		am_coroutine_create(&co, server, port[i]); ////////no run
+		am_coroutine_create(&co, server, &port[i]); ////////no run
 	}
 
 	am_schedule_run(); //run

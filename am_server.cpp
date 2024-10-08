@@ -90,7 +90,8 @@ void server(void *arg) {
 
 int main(int argc, char *argv[]) {
 	am_coroutine *co = NULL;
-	
+	printf("sizeof(am_coroutine)==[%d]\n",sizeof(am_coroutine));
+	printf("sizeof(am_schedule)==[%d]\n",sizeof(am_schedule));
 	unsigned short port[100];
 	unsigned short base_port = 8888;
 	for (int i = 0;i < 100; ++i) {

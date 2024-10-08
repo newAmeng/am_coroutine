@@ -1,5 +1,25 @@
 # am_coroutine, 一个简单易用的协程框架
 
+## 0.协程的性能测试
+
+测试环境：4台虚拟机
+
+1台服务器8G内存，2核CPU
+
+3台客户端2.5G内存，1核CPU
+
+理论上讲，服务端需要的内存大小为：协程大小为240字节，协程私有栈大小为4096字节，TCP读和写缓冲区的总大小为4096字节，这样一百万的连接需要的内存大小为7.85G
+
+100万的连接，平分到3个客户端，每个客户端需要34万的连接，这样单个客户端需要的内存大小为：4096B*340000约等于1.3G。
+
+这样总的用于测试百万并发需要的内存大小为：7.85+1.3*3=11.75G
+
+但由于Windows刚开机就占用了3.2G内存，加上虚拟机运行后的4G内存，这样百万并发我们实际需要的内存总大小是18.95G内存。
+
+实际测试中，我的电脑跑到84万连接时，就因内存耗尽而卡死了。
+
+![1](./img/10.png)
+
 ## 1.为什么要有协程
 
 ![1](./img/1.png)
@@ -195,7 +215,140 @@ void am_coroutine_init(am_coroutine* co){
 }
 ```
 
+## 7.协程的结构定义
 
+新创建的协程加入到就绪队列(ready_queue)等待调度器的调度。协程运行时进行IO操作，如果此时IO未就绪，则进入等待树(wait_tree)。如果IO就绪，协程运行后进行sleep操作，则进入到睡眠树(sleeping_tree)中。
+
+就绪队列不设置优先级，所以采用普通的队列就可以。睡眠树和等待树都需要按照时长进行排序，所以采用红黑树。数据结构如下：
+
+![1](./img/9.png)
+
+```c++
+typedef struct _am_coroutine{
+	//CPU上下文
+	am_cpu_ctx ctx;
+	//协程要执行的函数
+	proc_coroutine func;
+	//上述函数参数
+	void* arg;
+
+	//协程的状态
+	//am_coroutine_status status;
+	uint32_t status;
+	//调度器
+	am_schedule* sched;
+	//协程的创建时间
+	uint64_t birth;
+	//协程的唯一标识符
+	uint64_t id;
+	//文件描述符
+	int fd;
+	//文件描述符的事件类型
+	unsigned short events;
+
+
+	//协程的栈指针，指向协程的栈空间
+	void* stack;
+	//协程的栈的大小
+	size_t stack_size;
+	
+	//协程下一次需要唤醒的时间，以微秒为单位
+	uint64_t sleep_usecs;
+
+	//用于在调度器的睡眠队列中排序协程
+	RB_ENTRY(_am_coroutine) sleep_node;
+	//用于在调度器的等待队列中排序协程
+	RB_ENTRY(_am_coroutine) wait_node;
+
+	//用于在调度器的就绪队列中排序协程
+	TAILQ_ENTRY(_am_coroutine) ready_next;
+
+}am_coroutine;
+```
+
+## 8.协程的调度器
+
+调度器是用来管理协程的，调度器的结构如下：
+
+```c++
+typedef struct _am_schedule{
+	//调度器的创建时间
+	uint64_t birth;
+	//CPU上下文
+	am_cpu_ctx ctx;
+	//栈指针，指向调度器私有栈的栈底
+	void* stack;
+	//栈的大小
+	size_t stack_size;
+	//已创建的协程数量
+	int spawned_coroutines;
+	//默认超时时间，单位微秒
+	uint64_t default_timeout;
+	//当前正在运行的协程
+	struct _am_coroutine* curr_thread;
+
+	//epoll文件描述符
+	int epoll_fd;
+	int eventfd;
+	struct epoll_event eventlist[AM_CO_MAX_EVENTS];
+
+	//新的就绪事件数量
+	int num_new_events;
+
+	//协程队列，存储就绪的协程
+	am_coroutine_queue ready;
+
+	//忙碌链表，存储忙碌的协程
+	am_coroutine_link busy;
+	
+	//睡眠红黑树，存储睡眠的协程
+	am_coroutine_rbtree_sleep sleeping;
+	//等待红黑树，存储等待的协程
+	am_coroutine_rbtree_wait waiting;
+}am_schedule;
+```
+
+协程的调度策略采用的是多状态运行的策略。简单来说就是遍历睡眠树、就绪队列和等待树，只要它们不为空，那就从中选出一个协程来运行。其代码逻辑如下：
+
+```c++
+//只要还有没有执行完的协程
+	while(!am_schedule_isdone(sched)){
+		//1.从睡眠树中获取已经睡完的协程^_^
+		am_coroutine* expired = NULL;
+		//获取睡眠时间到期的协程
+		while((expired = am_schedule_expired(sched)) != NULL){
+			am_coroutine_resume(expired);
+		}
+
+		//2.就绪队列中的协程
+		//获取就绪队列中的最后一个协程
+		am_coroutine* last_co_ready = TAILQ_LAST(&sched->ready,_am_coroutine_queue);
+		while(!TAILQ_EMPTY(&sched->ready)){
+			//获取就绪队列中的第一个协程
+			am_coroutine* co = TAILQ_FIRST(&sched->ready);
+			//从就绪队列中移除该协程
+			TAILQ_REMOVE(&co->sched->ready,co,ready_next);
+
+			am_coroutine_resume(co);
+			if(co == last_co_ready){
+				break;
+			}
+		}
+
+		//3.等待树中的协程
+		am_schedule_epoll(sched);
+		//如果有新的事件到来
+		while(sched->num_new_events){
+			int idx = --sched->num_new_events;
+			struct epoll_event* ev = sched->eventlist + idx;
+
+			int fd = ev->data.fd;
+			am_coroutine* co = am_schedule_search_wait(fd);
+			if(co != NULL){
+				am_coroutine_resume(co);
+			}
+		}
+```
 
 
 

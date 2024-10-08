@@ -133,8 +133,6 @@ typedef struct _am_coroutine{
 	//上述函数参数
 	void* arg;
 
-	
-
 	//协程的状态
 	//am_coroutine_status status;
 	uint32_t status;

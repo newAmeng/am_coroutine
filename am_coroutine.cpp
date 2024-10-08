@@ -142,12 +142,14 @@ int am_coroutine_create(am_coroutine** new_co,proc_coroutine func,void* arg){
 		return -1;
 	}
 
-	int ret = posix_memalign(&co->stack,getpagesize(),sched->stack_size);
-	if(ret!=0){
-		printf("posix_memalign err\n");
-		free(co);
-		return -1;
-	}
+	//int ret = posix_memalign(&co->stack,getpagesize(),sched->stack_size);
+	//if(ret!=0){
+	//	printf("posix_memalign err\n");
+	//	free(co);
+	//	return -1;
+	//}
+	co->stack = (void*)malloc(sched->stack_size);
+	memset(co->stack,0x00,sched->stack_size);
 
 	co->sched = sched;
 	co->stack_size = sched->stack_size;

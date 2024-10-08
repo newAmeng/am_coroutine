@@ -158,7 +158,9 @@ int am_schedule_create(int stack_size){
 
 	sched->stack_size = stack_size;
 	sched->spawned_coroutines = 0;
-	sched->default_timeout = 3000000u;
+	//默认超时时间,单位微妙
+	//sched->default_timeout = 3000000u;
+	sched->default_timeout = 60000000u;
 
 	RB_INIT(&sched->sleeping);
 	RB_INIT(&sched->waiting);
